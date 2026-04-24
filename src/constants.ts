@@ -65,3 +65,24 @@ export const SPEAKING_STYLES = ['ta是主子', 'ta是小暖男', 'ta是粘人小
 
 export const DOG_BREEDS = ['金毛', '拉布拉多', '柯基', '柴犬', '边牧', '哈士奇', '贵宾', '田园犬', '萨摩耶', '阿拉斯加', '博美', '比熊', '瑞典牧羊犬', '其他'];
 export const CAT_BREEDS = ['美短', '英短', '布偶', '暹罗', '橘猫', '三花', '玄猫', '奶牛猫', '波斯猫', '缅因猫', '孟加拉豹猫', '无毛猫', '其他'];
+
+export const FEED_OPTIONS = [
+  { id: 'rainbow-bean', name: '彩虹星豆', cost: 12, effectText: '轻微闪光', icon: '✨' },
+  { id: 'stardust-cookie', name: '星尘饼干', cost: 24, effectText: '高兴转圈', icon: '🍪' },
+  { id: 'nebula-jelly', name: '星云果冻', cost: 36, effectText: '打嗝冒泡泡', icon: '🍮' },
+  { id: 'galaxy-fish', name: '银河小鱼干', cost: 48, effectText: '舔嘴冒爱心', icon: '🐟' },
+  { id: 'comet-meat', name: '彗星肉干', cost: 48, effectText: '蹦跳摇尾巴', icon: '🍖' },
+  { id: 'moonlight-candy', name: '月光奶糖', cost: 60, effectText: '打哈欠慵懒', icon: '🍬' },
+  { id: 'aurora-smoothie', name: '极光冰沙', cost: 72, effectText: '发光10秒', icon: '🍧' },
+  { id: 'meteor-skewer', name: '流星肉串', cost: 84, effectText: '追尾巴转圈', icon: '🍢' },
+  { id: 'star-energy', name: '星核能量块', cost: 96, effectText: '浑身带电', icon: '⚡' },
+  { id: 'stardust-cake', name: '星尘蛋糕', cost: 120, effectText: '戴小生日帽', icon: '🎂' }
+];
+
+export const DRESSUP_OPTIONS = [
+  { id: 'halo', name: '星尘光环', cost: 200, effectText: '头顶发光光环', icon: '🔆' },
+  { id: 'trail', name: '流光尾迹', cost: 320, effectText: '走动留存光带', icon: '💫' },
+  { id: 'stars', name: '小星星环绕', cost: 520, effectText: '四周星星闪烁', icon: '✨' },
+  { id: 'cape', name: '极光披风', cost: 750, effectText: '背后极光流转', icon: '🧥' },
+  { id: 'giftpack', name: '星尘装扮礼包', cost: 1314, effectText: '全套光效叠加', icon: '🎁' }
+];

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Pet, UserProfile } from '@/src/types';
 import { cn } from '@/src/lib/utils';
-import { Heart, Sparkles, RefreshCw, Fish, Bone, X } from 'lucide-react';
+import { Heart, Sparkles, RefreshCw, Fish, Bone, X, Shirt } from 'lucide-react';
+import { FEED_OPTIONS, DRESSUP_OPTIONS } from '@/src/constants';
 
 interface PetDisplayProps {
   pet: Pet;
@@ -19,14 +20,9 @@ export function PetDisplay({ pet, onInteract, userProfile, onUpdateProfile, onRe
   const [isJumping, setIsJumping] = useState(false);
   const [currentMood, setCurrentMood] = useState<'normal' | 'happy' | 'sleeping' | 'eating'>('normal');
   const [showFeedMenu, setShowFeedMenu] = useState(false);
+  const [showDressMenu, setShowDressMenu] = useState(false);
 
-  const feedOptions = [
-    { id: 'freeze-dried', name: '冻干', cost: 10, icon: <Bone size={14} />, effect: '🍖' },
-    { id: 'cat-treat', name: '猫条', cost: 15, icon: <Fish size={14} />, effect: '🐟' },
-    { id: 'fish-oil', name: '鱼油', cost: 20, icon: <Sparkles size={14} />, effect: '💊' },
-  ];
-
-  const handleFeedSelect = (option: typeof feedOptions[0]) => {
+  const handleFeedSelect = (option: typeof FEED_OPTIONS[0]) => {
     if (!userProfile || !onUpdateProfile) return;
 
     if (userProfile.coins < option.cost) {
@@ -35,22 +31,24 @@ export function PetDisplay({ pet, onInteract, userProfile, onUpdateProfile, onRe
     }
 
     const currentInventory = userProfile.foodInventory || {};
+    // Increase conversational limit when feeding
     onUpdateProfile({
       ...userProfile,
       coins: userProfile.coins - option.cost,
       foodInventory: {
         ...currentInventory,
         [option.id]: (currentInventory[option.id] || 0) + 1
-      }
+      },
+      dialogueRemaining: (userProfile.dialogueRemaining || 0) + 1
     });
 
-    handleInteraction(null, 'feed', option.effect);
+    handleInteraction(null, 'feed', option.icon);
     setTimeout(() => {
         setShowFeedMenu(false);
     }, 600);
   };
   
-  const handleUseFood = (option: typeof feedOptions[0]) => {
+  const handleUseFood = (option: typeof FEED_OPTIONS[0]) => {
     if (!userProfile || !onUpdateProfile) return;
     
     const currentInventory = userProfile.foodInventory || {};
@@ -66,13 +64,38 @@ export function PetDisplay({ pet, onInteract, userProfile, onUpdateProfile, onRe
       foodInventory: {
         ...currentInventory,
         [option.id]: count - 1
-      }
+      },
+      dialogueRemaining: (userProfile.dialogueRemaining || 0) + 1
     });
     
-    handleInteraction(null, 'feed', option.effect);
+    handleInteraction(null, 'feed', option.icon);
     setTimeout(() => {
         setShowFeedMenu(false);
     }, 600);
+  };
+  
+  const handleDressSelect = (option: typeof DRESSUP_OPTIONS[0]) => {
+    if (!userProfile || !onUpdateProfile) return;
+
+    if (userProfile.inventory.includes(option.id)) {
+        alert("已穿戴！");
+        setShowDressMenu(false);
+        return;
+    }
+
+    if (userProfile.coins < option.cost) {
+      alert("星辰币不足，请充值后购买装扮！");
+      return;
+    }
+
+    onUpdateProfile({
+      ...userProfile,
+      coins: userProfile.coins - option.cost,
+      inventory: [...userProfile.inventory, option.id]
+    });
+
+    alert(`已购买并装备 ${option.name}`);
+    setShowDressMenu(false);
   };
 
   const handleInteraction = (e: React.MouseEvent | null, type: 'pat' | 'poke' | 'feed', customEffect?: string) => {
@@ -211,6 +234,14 @@ export function PetDisplay({ pet, onInteract, userProfile, onUpdateProfile, onRe
 
       {/* Interaction Buttons Overlay */}
       <div className="absolute top-10 right-4 flex flex-col items-center gap-4 pointer-events-auto">
+        <button 
+          onClick={() => setShowDressMenu(!showDressMenu)}
+          className="flex flex-col items-center gap-1 opacity-80 hover:opacity-100 transition-opacity group"
+        >
+          <Shirt size={18} className="text-purple-300 drop-shadow-[0_0_8px_rgba(216,180,254,0.8)] group-active:scale-95" />
+          <span className="text-[10px] text-white font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">装扮</span>
+        </button>
+
         <div className="relative">
           <button 
             onClick={() => setShowFeedMenu(!showFeedMenu)}
@@ -272,8 +303,8 @@ export function PetDisplay({ pet, onInteract, userProfile, onUpdateProfile, onRe
                     </button>
                 </div>
                 
-                <div className="flex flex-col gap-3">
-                    {feedOptions.map(opt => {
+                <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                    {FEED_OPTIONS.map(opt => {
                         const ownedCount = (userProfile?.foodInventory || {})[opt.id] || 0;
                         return (
                             <div key={opt.id} className="flex items-center justify-between bg-white/5 rounded-xl p-3 border border-white/10">
@@ -282,24 +313,95 @@ export function PetDisplay({ pet, onInteract, userProfile, onUpdateProfile, onRe
                                       {opt.icon}
                                     </div>
                                     <div className="flex flex-col items-start pr-2">
-                                       <span className="text-sm font-bold text-white">{opt.name}</span>
-                                       <span className="text-[10px] text-white/50">余量: {ownedCount}</span>
+                                       <span className="text-sm font-bold text-white mb-0.5">{opt.name}</span>
+                                       <span className="text-[10px] text-white/50">{opt.effectText}</span>
+                                       <span className="text-[10px] text-white/40 mt-0.5">余量: {ownedCount}</span>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
                                     <button 
                                         onClick={() => handleFeedSelect(opt)}
-                                        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-yellow-200 text-xs font-bold transition-all active:scale-95"
+                                        className="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-yellow-200 text-[10px] font-bold transition-all active:scale-95"
                                     >
-                                        买({opt.cost})
+                                        买 ({opt.cost})
                                     </button>
                                     <button 
                                         onClick={() => handleUseFood(opt)}
                                         disabled={ownedCount <= 0}
-                                        className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 disabled:bg-gray-600 disabled:text-gray-400 rounded-lg text-white text-xs font-bold transition-all active:scale-95"
+                                        className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 disabled:bg-gray-600 disabled:text-gray-400 rounded-lg text-white text-[10px] font-bold transition-all active:scale-95"
                                     >
                                         喂食
                                     </button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Dress Up modal overlay */}
+      <AnimatePresence>
+        {showDressMenu && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => setShowDressMenu(false)}
+          >
+            <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="bg-[#11131A]/95 p-6 rounded-3xl border border-white/20 shadow-2xl flex flex-col gap-4 w-full max-w-sm relative"
+                onClick={e => e.stopPropagation()}
+                style={{ pointerEvents: 'auto' }}
+            >
+                <div className="flex justify-between items-start mb-2">
+                    <div className="flex flex-col gap-1">
+                        <h3 className="text-white font-bold text-lg">星尘装扮</h3>
+                        <div className="text-purple-300 text-[10px] font-bold bg-purple-400/20 px-3 py-1 rounded-full flex items-center gap-1 w-fit">
+                            <Sparkles size={10} /> {userProfile?.coins || 0} 星辰币
+                        </div>
+                    </div>
+                    <button 
+                      onClick={() => setShowDressMenu(false)}
+                      className="p-2 bg-white/10 rounded-full text-white/60 hover:bg-white/20 hover:text-white transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                </div>
+                
+                <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+                    {DRESSUP_OPTIONS.map(opt => {
+                        const isOwned = userProfile?.inventory.includes(opt.id) || false;
+                        return (
+                            <div key={opt.id} className="flex items-center justify-between bg-white/5 rounded-xl p-3 border border-white/10">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gradient-to-br from-purple-400/80 to-purple-600/80 rounded-xl flex items-center justify-center text-white shadow-inner text-lg">
+                                      {opt.icon}
+                                    </div>
+                                    <div className="flex flex-col items-start pr-2">
+                                       <span className="text-sm font-bold text-white mb-0.5">{opt.name}</span>
+                                       <span className="text-[10px] text-white/50">{opt.effectText}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    {isOwned ? (
+                                        <span className="px-3 py-1.5 text-[10px] font-bold text-white/40 border border-white/10 rounded-lg bg-white/5">
+                                            已拥有
+                                        </span>
+                                    ) : (
+                                        <button 
+                                            onClick={() => handleDressSelect(opt)}
+                                            className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/40 border border-purple-500/30 rounded-lg text-purple-300 text-xs font-bold transition-all active:scale-95 whitespace-nowrap"
+                                        >
+                                            拥有 ({opt.cost})
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         );

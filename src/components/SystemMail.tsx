@@ -1,27 +1,17 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Mail, Settings, Package, Bell, Info } from 'lucide-react';
+import { Mail, Settings, Package, Bell, Info, UserPlus } from 'lucide-react';
+import { Mail as MailType } from '../types';
 
-export function SystemMail() {
-  const mails = [
-    {
-      id: 1,
-      title: '欢迎来到星云家园',
-      date: '刚刚',
-      content: '亲爱的旅人，欢迎来到星云纪元。在这里，所有的思念都将化为璀璨的星尘。我们为你准备了500星币作为见面礼，祝你在星居度过愉快的时光。',
-      isNew: true
-    },
-    {
-      id: 2,
-      title: '系统更新公告 v2.0',
-      date: '1天前',
-      content: '本次更新优化了宠物交互逻辑，新增了星尘记忆墙功能。你现在可以更方便地上传照片和记录故事了。',
-      isNew: false
-    }
-  ];
+interface SystemMailProps {
+  mails: MailType[];
+  onAddFriend: (friend: any) => void;
+  onMarkRead: (id: string) => void;
+}
 
+export function SystemMail({ mails, onAddFriend, onMarkRead }: SystemMailProps) {
   return (
-    <div className="h-full bg-transparent pt-0 pb-0 overflow-y-auto px-6 relative flex flex-col">
+    <div className="h-full bg-transparent pt-0 pb-0 overflow-y-auto px-6 relative flex flex-col no-scrollbar">
       <div className="sticky top-0 left-0 right-0 pt-10 pb-6 pl-14 z-40 flex items-center mb-4 pointer-events-none">
         <div className="flex items-center gap-3 pointer-events-auto">
           <Mail size={24} className="text-white" />
@@ -35,17 +25,40 @@ export function SystemMail() {
             key={mail.id}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 backdrop-blur-md rounded-3xl p-6 border border-white/20 shadow-sm relative overflow-hidden"
+            className={`backdrop-blur-md rounded-3xl p-6 border shadow-sm relative overflow-hidden transition-all ${mail.isNew ? 'bg-white/10 border-white/30' : 'bg-black/20 border-white/10'}`}
+            onClick={() => {
+              if (mail.isNew) onMarkRead(mail.id);
+            }}
           >
             {mail.isNew && (
               <div className="absolute top-0 right-0 w-12 h-12 bg-red-400/20 flex items-start justify-end p-2 rounded-bl-3xl">
-                <span className="w-2 h-2 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.8)]" />
+                <span className="w-2 h-2 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.8)] animate-pulse" />
               </div>
             )}
             <div className="flex justify-between items-start mb-3">
               <h3 className="text-sm font-bold text-white">{mail.title}</h3>
               <span className="text-[10px] font-bold text-white/50 uppercase tracking-wider">{mail.date}</span>
             </div>
+            
+            {mail.senderInfo && (
+              <div className="flex items-center gap-3 mb-4 bg-white/5 p-3 rounded-2xl">
+                <img src={mail.senderInfo.avatar} className="w-10 h-10 rounded-full border border-white/20" />
+                <div className="flex-1">
+                  <p className="text-xs text-white/60 mb-0.5">来自看星的人</p>
+                  <p className="text-sm font-bold text-white">{mail.senderInfo.name}</p>
+                </div>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddFriend(mail.senderInfo);
+                  }}
+                  className="flex items-center gap-1.5 bg-blue-500/20 hover:bg-blue-500/40 text-blue-300 px-3 py-1.5 rounded-full text-xs font-bold transition-colors border border-blue-500/30"
+                >
+                  <UserPlus size={14} /> 加为好友
+                </button>
+              </div>
+            )}
+
             <p className="text-xs text-white/80 leading-relaxed">
               {mail.content}
             </p>

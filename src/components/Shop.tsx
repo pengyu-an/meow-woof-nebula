@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Gift, QrCode, X, Sparkles } from 'lucide-react';
+import { Gift, QrCode, X, Sparkles, Gem, Coffee, Box, Package, Check } from 'lucide-react';
 import { UserProfile } from '@/src/types';
 
 interface ShopProps {
@@ -9,105 +9,258 @@ interface ShopProps {
 }
 
 export function Shop({ userProfile, onUpdateProfile }: ShopProps) {
-  const [selectedProduct, setSelectedProduct] = useState<{name: string, price: string, amount: string} | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<{name: string, price: string, amount: string, callback?: () => void} | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const products: { name: string; desc: string; price: string; amount: string; highlight?: boolean; customIcon?: React.ReactNode }[] = [
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const handlePurchase = (productParams: {name: string, price: string, amount: string, callback?: () => void}) => {
+    setSelectedProduct(productParams);
+  };
+
+  const discountRate = userProfile?.vipTier === 'yearly' ? 0.8 : userProfile?.vipTier === 'monthly' ? 0.9 : 1.0;
+
+  const vipSubscriptions = [
     {
-      name: '100 星辰币',
-      desc: '可以购买冻干等普通食物',
-      price: '1.00元',
-      amount: '1',
-      customIcon: <Sparkles className="text-yellow-400" size={16} />
+      name: '星云月卡',
+      desc: '每日 3 条耳语 + 无限主页对话 + 星尘币购买 9 折',
+      price: '9.9 元/月',
+      amount: '9.9',
+      highlight: false,
+      tier: 'monthly' as const
     },
     {
-      name: '1000 星辰币',
-      desc: '丰盛大餐，快速恢复宠物状态',
-      price: '10.00元',
-      amount: '10',
+      name: '星云年卡',
+      desc: '月卡权益 + 星尘币购买 8 折 + 附赠限定星尘光环',
+      price: '79 元/年',
+      amount: '79',
       highlight: true,
-      customIcon: <Sparkles className="text-yellow-400" size={16} />
+      tier: 'yearly' as const
     },
     {
-      name: '5000 星辰币',
-      desc: '海量星辰币，无忧陪伴',
-      price: '50.00元',
-      amount: '50',
-      customIcon: <Sparkles className="text-yellow-400" size={16} />
-    },
-    {
-      name: '星云会员订阅',
-      desc: '维持宠物星尘活跃度、每日动态、无限次写信',
-      price: '9.9元/月 或 89元/年',
-      amount: '9.9'
-    },
-    {
-      name: '一键孪生高级版',
-      desc: '多模态生成宠物真实相貌等',
-      price: '59.00元',
-      amount: '59'
-    },
-    {
-      name: '时光相册扩展包',
-      desc: '增加50张照片、10段视频存储上限',
-      price: '19.00元',
-      amount: '19'
-    },
-    {
-      name: '星灵语音包',
-      desc: '定制专属宠物叫声',
-      price: '29.00元',
-      amount: '29'
+      name: '首月特惠',
+      desc: '新用户专享',
+      price: '1.9 元/首月',
+      amount: '1.9',
+      highlight: false,
+      tier: 'monthly' as const
     }
   ];
 
+  const coinPackages = [
+    { name: '300 星尘币', extra: '无', price: `6元`, basePrice: 6, coins: 300 },
+    { name: '900 星尘币', extra: '赠送 100 币', price: `18元`, basePrice: 18, coins: 1000 },
+    { name: '1500 星尘币', extra: '赠送 250 币', price: `28元`, basePrice: 28, coins: 1750 },
+    { name: '3400 星尘币', extra: '赠送 600 币', price: `68元`, basePrice: 68, coins: 4000 },
+    { name: '6400 星尘币', extra: '赠送 1600 币', price: `128元`, basePrice: 128, coins: 8000 }
+  ];
+
+  const socialGifts = [
+    { name: '一颗星尘', desc: '赠送后对方家园显示闪烁星尘', price: '50 星尘币', icon: '✨' },
+    { name: '一束星光', desc: '对方宠物发光 10 秒，记录在耳语', price: '300 星尘币', icon: '💫' }
+  ];
+
+  const valueAddedServices = [
+    { name: '纪念日视频包', price: '29.9 元/次', amount: '29.9' },
+    { name: '小窝高级孪生', price: '19.9 元/次', amount: '19.9' }
+  ];
+
   return (
-    <div className="h-full bg-transparent pt-0 pb-0 overflow-y-auto px-6 relative flex flex-col">
-      <div className="sticky top-0 left-0 right-0 pt-10 pb-6 pl-14 z-40 flex items-center mb-2 pointer-events-none">
-        <div className="flex items-center gap-3 pointer-events-auto">
+    <div className="h-full bg-[#11131A] pt-0 pb-0 overflow-y-auto px-6 relative flex flex-col no-scrollbar">
+      <div className="sticky top-0 left-0 right-0 pt-10 pb-6 pl-14 z-40 flex items-center mb-2 bg-gradient-to-b from-[#11131A] via-[#11131A]/80 to-transparent">
+        <div className="flex items-center gap-3">
           <Gift size={24} className="text-yellow-400" />
           <h2 className="text-xl font-serif font-bold text-white drop-shadow-md">充值通道</h2>
         </div>
       </div>
 
-      <div className="space-y-4 pb-20">
-        <h3 className="text-[10px] font-bold tracking-widest uppercase text-white/70 mb-4 px-2">服务价目表</h3>
+      <div className="space-y-8 pb-20 mt-4">
         
-        {products.map((p, idx) => (
+        {/* 会员订阅 */}
+        <section>
+          <div className="flex items-center gap-2 mb-4 px-2">
+            <Gem size={16} className="text-purple-400" />
+            <h3 className="text-xs font-bold tracking-widest uppercase text-white/80">会员订阅 (人民币支付)</h3>
+          </div>
+          <div className="space-y-3">
+            {vipSubscriptions.map((p, idx) => (
+              <motion.div 
+                key={idx}
+                onClick={() => handlePurchase({
+                    name: p.name, price: p.price, amount: p.amount, 
+                    callback: () => {
+                        if (onUpdateProfile && userProfile) {
+                            onUpdateProfile({ ...userProfile, isVIP: true, vipTier: p.tier });
+                            showToast('模拟开通会员成功！已解锁无限次主页对话！');
+                        }
+                    }
+                })}
+                className={`rounded-2xl p-4 border cursor-pointer active:scale-95 transition-transform backdrop-blur-md ${p.highlight ? 'bg-gradient-to-r from-purple-500/20 to-indigo-500/20 border-purple-400/50 hover:from-purple-500/30 hover:to-indigo-500/30' : 'bg-white/5 border-white/10 hover:bg-white/10'} relative`}
+              >
+                {p.highlight && (
+                  <div className="absolute top-0 right-4 -translate-y-1/2 bg-purple-500/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest shadow-md">
+                    推荐
+                  </div>
+                )}
+                <div className="flex justify-between items-start mb-1 gap-4">
+                  <h4 className={`text-sm font-bold ${p.highlight ? 'text-purple-300' : 'text-white'}`}>{p.name}</h4>
+                  <span className="text-[11px] font-bold text-white/90 shrink-0">{p.price}</span>
+                </div>
+                <p className="text-[10px] text-white/50 leading-relaxed font-medium">{p.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* 星尘币充值 */}
+        <section>
+          <div className="flex items-center gap-2 mb-4 px-2">
+            <Sparkles size={16} className="text-yellow-400" />
+            <h3 className="text-xs font-bold tracking-widest uppercase text-white/80">星尘币充值 (汇率 1元=50币)</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {coinPackages.map((p, idx) => {
+              const discountedPrice = (p.basePrice * discountRate).toFixed(2);
+              return (
+                <motion.div 
+                  key={idx}
+                  onClick={() => handlePurchase({
+                    name: p.name, price: `￥${discountedPrice}`, amount: discountedPrice,
+                    callback: () => {
+                        if (onUpdateProfile && userProfile) {
+                            onUpdateProfile({ ...userProfile, coins: userProfile.coins + p.coins });
+                            showToast(`模拟充值成功！获得 ${p.coins} 星尘币。`);
+                        }
+                    }
+                  })}
+                  className="rounded-2xl p-4 bg-yellow-500/5 border border-yellow-500/20 hover:bg-yellow-500/10 cursor-pointer active:scale-95 transition-all text-center flex flex-col gap-1 relative overflow-hidden"
+                >
+                  {p.extra !== '无' && (
+                    <div className="bg-yellow-500 text-yellow-950 text-[8px] font-bold px-2 py-0.5 self-center rounded-full mb-1">
+                      {p.extra}
+                    </div>
+                  )}
+                  <h4 className="text-sm font-bold text-yellow-300 mx-auto">{p.name}</h4>
+                  <div className="text-xs text-white/60 line-through scale-90">￥{p.basePrice.toFixed(2)}</div>
+                  <div className="text-lg font-bold text-white mt-auto">￥{discountedPrice}</div>
+                  {discountRate < 1.0 && <span className="absolute bottom-1 left-2 text-[8px] text-purple-400">会员折扣</span>}
+                </motion.div>
+              );
+            })}
+          </div>
+          <div className="mt-2 text-[10px] text-center text-white/40">*首充任意档位，所得币翻倍（暂未模拟）</div>
+        </section>
+
+        {/* 社交礼物 */}
+        <section>
+          <div className="flex items-center gap-2 mb-4 px-2">
+            <Coffee size={16} className="text-pink-400" />
+            <h3 className="text-xs font-bold tracking-widest uppercase text-white/80">社交礼物 (星尘币支付)</h3>
+          </div>
+          <div className="space-y-3">
+            {socialGifts.map((p, idx) => (
+              <motion.div 
+                key={idx}
+                onClick={() => {
+                  if (userProfile && onUpdateProfile) {
+                      const cost = parseInt(p.price);
+                      if (userProfile.coins >= cost) {
+                          const updatedGifts = { ...userProfile.gifts };
+                          updatedGifts[p.name] = (updatedGifts[p.name] || 0) + 1;
+                          onUpdateProfile({...userProfile, coins: userProfile.coins - cost, gifts: updatedGifts});
+                          showToast(`购买成功！已将 ${p.name} 放入背包，可在星云之门送给其他宠物。`);
+                      } else {
+                          showToast('星尘币不足！');
+                      }
+                  }
+                }}
+                className="rounded-2xl p-3 bg-white/5 border border-white/10 flex items-center justify-between gap-3 cursor-pointer hover:bg-white/10 active:scale-95 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="text-xl bg-white/5 p-2 rounded-xl">{p.icon}</div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">{p.name}</h4>
+                    <p className="text-[10px] text-white/50 leading-tight block max-w-[150px]">{p.desc}</p>
+                  </div>
+                </div>
+                <div className="text-[11px] font-bold text-yellow-400 shrink-0 border border-yellow-400/30 px-2 py-1 rounded-full bg-yellow-400/10">
+                  {p.price}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* 增值服务 */}
+        <section>
+          <div className="flex items-center gap-2 mb-4 px-2">
+            <Box size={16} className="text-blue-400" />
+            <h3 className="text-xs font-bold tracking-widest uppercase text-white/80">增值服务 (人民币支付)</h3>
+          </div>
+          <div className="space-y-3">
+            {valueAddedServices.map((p, idx) => (
+              <motion.div 
+                key={idx}
+                onClick={() => handlePurchase({
+                  name: p.name, price: p.price, amount: p.amount,
+                  callback: () => { showToast(`模拟购买 ${p.name} 成功！`); }
+                })}
+                className="rounded-2xl p-4 border border-white/10 bg-white/5 hover:bg-white/10 cursor-pointer active:scale-95 transition-all flex justify-between items-center"
+              >
+                <h4 className="text-sm font-bold text-white">{p.name}</h4>
+                <div className="text-[11px] font-bold text-white/80">{p.price}</div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* 实体周边 */}
+        <section>
+          <div className="flex items-center gap-2 mb-4 px-2">
+            <Package size={16} className="text-orange-400" />
+            <h3 className="text-xs font-bold tracking-widest uppercase text-white/80">实体周边</h3>
+          </div>
           <motion.div 
-            key={idx}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
-            onClick={() => setSelectedProduct(p)}
-            className={`rounded-3xl p-5 border cursor-pointer active:scale-95 transition-transform backdrop-blur-md ${p.highlight ? 'bg-yellow-500/20 border-yellow-400/50 hover:bg-yellow-500/30' : 'bg-white/10 border-white/20 hover:bg-white/20'} relative`}
+            className="rounded-2xl p-5 border border-white/5 bg-black/20 text-center"
           >
-            {p.highlight && (
-              <div className="absolute top-0 right-4 -translate-y-1/2 bg-yellow-500/90 text-white text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest shadow-md border border-yellow-300">
-                热销
-              </div>
-            )}
-            <div className="flex justify-between items-start mb-2 gap-4">
-              <h4 className={`text-sm font-bold flex items-center gap-1 ${p.highlight ? 'text-yellow-300' : 'text-white'}`}>
-                {p.customIcon}
-                {p.name}
-              </h4>
-              <span className={`text-[11px] font-bold shrink-0 ${p.highlight ? 'text-yellow-400' : 'text-white/80'}`}>{p.price}</span>
-            </div>
-            <p className="text-xs text-white/60 leading-relaxed">
-              {p.desc}
+            <p className="text-xs text-white/60 leading-relaxed max-w-[250px] mx-auto">
+              根据你的宠物，定制独一无二的星尘周边。<br/>
+              星尘手作工坊 · 专属记忆系列<br/>（毛绒挂件、纪念相框、星尘手办）
             </p>
+            <div className="mt-3 inline-block px-3 py-1 bg-white/5 rounded-full text-[10px] text-white/40 border border-white/10">
+              正在筹备中，敬请期待
+            </div>
           </motion.div>
-        ))}
+        </section>
       </div>
 
       {/* Payment Modal */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-10 left-1/2 -translate-x-1/2 z-[200] bg-black/80 backdrop-blur-xl border border-white/20 text-white px-6 py-3 rounded-full flex items-center justify-center shadow-2xl"
+          >
+            <div className="flex bg-white/10 p-1.5 rounded-full mr-3 text-green-400">
+                <Check size={14} />
+            </div>
+            <span className="text-sm font-bold tracking-wide">{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence>
         {selectedProduct && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6"
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6"
             onClick={() => setSelectedProduct(null)}
           >
             <motion.div
@@ -148,25 +301,15 @@ export function Shop({ userProfile, onUpdateProfile }: ShopProps) {
                 长按可保存二维码图片
               </p>
 
-              {/* Just for mock experience, auto-credit if it's coins */}
-              {selectedProduct.name.includes('星辰币') && (
-                <button 
-                  onClick={() => {
-                    if (onUpdateProfile && userProfile) {
-                      const coinsToAdd = parseInt(selectedProduct.name.split(' ')[0]);
-                      onUpdateProfile({
-                        ...userProfile,
-                        coins: userProfile.coins + coinsToAdd
-                      });
-                      alert(`已成功充值 ${coinsToAdd} 星辰币 (此为模拟体验)`);
-                      setSelectedProduct(null);
-                    }
-                  }}
-                  className="mt-6 w-full py-3 bg-emerald-500/80 text-white text-sm font-bold rounded-2xl shadow-lg hover:bg-emerald-500 active:scale-95 transition-all border border-emerald-400/50 backdrop-blur-md"
-                >
-                  模拟支付成功 (获得星辰币)
-                </button>
-              )}
+              <button 
+                onClick={() => {
+                   if (selectedProduct.callback) selectedProduct.callback();
+                   setSelectedProduct(null);
+                }}
+                className="mt-6 w-full py-3 bg-emerald-500/80 text-white text-sm font-bold rounded-2xl shadow-lg hover:bg-emerald-500 active:scale-95 transition-all border border-emerald-400/50 backdrop-blur-md"
+              >
+                模拟支付成功
+              </button>
             </motion.div>
           </motion.div>
         )}

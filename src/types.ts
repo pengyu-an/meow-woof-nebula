@@ -68,6 +68,30 @@ export interface UserProfile {
   coins: number;
   inventory: string[]; // item IDs
   foodInventory?: Record<string, number>; // maps food id to quantity
+  gifts?: Record<string, number>; // maps gift name to quantity for social gifts
+  friends?: any[]; // For storing friends from NebulaGate
+  isVIP?: boolean;
+  vipTier?: 'none' | 'monthly' | 'yearly';
+  dialogueRemaining?: number;
+  dailyTasks?: {
+    date: string;
+    login: boolean;
+    patCount: number;
+    shareWhisper: boolean;
+    stay30s: boolean;
+    likeWhisperCount: number;
+    receiveStarGiftCount: number;
+    claimed: string[];
+  };
+}
+
+export interface Mail {
+  id: string;
+  title: string;
+  date: string;
+  content: string;
+  isNew: boolean;
+  senderInfo?: any; // To store whisper sender info
 }
 
 export interface ChatMessage {

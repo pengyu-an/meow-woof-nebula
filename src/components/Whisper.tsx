@@ -27,9 +27,10 @@ interface WhisperProps {
   petName: string;
   petType?: string; // Added to support generation
   personality?: string;
+  isVIP?: boolean;
 }
 
-export function Whisper({ ownerTitle, petName, petType = '小狗', personality = '活泼' }: WhisperProps) {
+export function Whisper({ ownerTitle, petName, petType = '小狗', personality = '活泼', isVIP = false }: WhisperProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [whispers, setWhispers] = useState<Whisper[]>([
     {
@@ -63,6 +64,22 @@ export function Whisper({ ownerTitle, petName, petType = '小狗', personality =
   const [activeCommentId, setActiveCommentId] = useState<string | null>(null);
   const [commentText, setCommentText] = useState('');
   const [showShareToast, setShowShareToast] = useState(false);
+
+  // Check whisper count today
+  const today = new Date().toDateString();
+  const getWhisperCount = () => {
+      const stored = localStorage.getItem('wangxing_whisper_count') || "{}";
+      const data = JSON.parse(stored);
+      if (data.date !== today) return 0;
+      return data.count || 0;
+  };
+  const incrementWhisperCount = () => {
+      const current = getWhisperCount();
+      localStorage.setItem('wangxing_whisper_count', JSON.stringify({
+          date: today,
+          count: current + 1
+      }));
+  };
 
   const handleLike = (id: string) => {
     setWhispers(prev => prev.map(w => {
@@ -123,6 +140,11 @@ export function Whisper({ ownerTitle, petName, petType = '小狗', personality =
   };
 
   const handleGenerateWhisper = async () => {
+    if (!isVIP && getWhisperCount() >= 1) {
+        alert("非会员每日仅可获取1条耳语哦，订阅星云会员即可无限获取或每日专享更多条数！");
+        return;
+    }
+
     setIsGenerating(true);
     try {
       const text = await generateWhisper(petName, petType, personality, ownerTitle);
@@ -136,6 +158,7 @@ export function Whisper({ ownerTitle, petName, petType = '小狗', personality =
           comments: []
         };
         setWhispers([newWhisper, ...whispers]);
+        incrementWhisperCount();
       }
     } catch (error) {
       console.error(error);

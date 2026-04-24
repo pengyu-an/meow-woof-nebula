@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Compass, Sparkles, Heart, MapPin, Send } from 'lucide-react';
+import { Compass, Sparkles, Heart, MapPin, Send, Gift } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { LANDMARKS, DOG_BREEDS, CAT_BREEDS } from '../constants';
 import { Landmark, Pet } from '../types';
@@ -40,8 +40,16 @@ interface Encounter {
   timestamp: number;
 }
 
+import { UserPlus } from 'lucide-react'; // Remember to add this import near the top if not already there but let's assume it handles it or I'll add it if it fails.
+
+import { UserProfile } from '../types';
+
 interface CommunityProps {
   myPet: Pet;
+  onAddFriend?: (friend: any) => void;
+  friends?: any[];
+  userProfile?: UserProfile | null;
+  onUpdateProfile?: (profile: UserProfile) => void;
 }
 
 interface SimulationState {
@@ -49,12 +57,51 @@ interface SimulationState {
   encounters: Encounter[];
 }
 
-export function Community({ myPet }: CommunityProps) {
+export function Community({ myPet, onAddFriend, friends = [], userProfile, onUpdateProfile }: CommunityProps) {
   const [selectedLandmark, setSelectedLandmark] = useState<Landmark | null>(null);
   const [selectedPet, setSelectedPet] = useState<PetNode | null>(null);
   const [zoom, setZoom] = useState(1);
   const [messageInput, setMessageInput] = useState('');
   const [starMessages, setStarMessages] = useState<StarMessage[]>([]);
+  const [showGiftMenu, setShowGiftMenu] = useState(false);
+  const [giftEffects, setGiftEffects] = useState<Record<string, 'stardust' | 'glow' | null>>({});
+
+  const handleSendGift = (giftName: string) => {
+    if (!userProfile || !onUpdateProfile || !selectedPet) return;
+    
+    // Check if user has the gift
+    const count = userProfile.gifts?.[giftName] || 0;
+    if (count <= 0) {
+      alert(`你还没有 ${giftName} 哦，可以去充值通道购买~`);
+      return;
+    }
+
+    // Deduct gift
+    const updatedGifts = { ...userProfile.gifts, [giftName]: count - 1 };
+    onUpdateProfile({ ...userProfile, gifts: updatedGifts });
+    
+    // Apply effect
+    const effectType = giftName === '一束星光' ? 'glow' : 'stardust';
+    setGiftEffects(prev => ({ ...prev, [selectedPet.id]: effectType }));
+    
+    // Show text message
+    setStarMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      petId: selectedPet.id,
+      text: `收到了你的礼物：${giftName} ✨`,
+      x: selectedPet.x,
+      y: selectedPet.y,
+      timestamp: Date.now()
+    }]);
+
+    // Timeout to clear effect
+    setTimeout(() => {
+      setGiftEffects(prev => ({ ...prev, [selectedPet.id]: null }));
+    }, 10000); // clear after 10s
+
+    setShowGiftMenu(false);
+    setSelectedPet(null);
+  };
   const [{ pets, encounters }, setSimState] = useState<SimulationState>({
     pets: [],
     encounters: []
@@ -456,9 +503,16 @@ export function Community({ myPet }: CommunityProps) {
                     {p.action}
                   </div>
                 )}
+                {giftEffects[p.id] === 'stardust' && (
+                  <div className="absolute inset-[-10px] bg-yellow-400/30 rounded-full blur-[8px] animate-pulse pointer-events-none" />
+                )}
+                {giftEffects[p.id] === 'glow' && (
+                  <div className="absolute inset-[-15px] bg-indigo-500/40 rounded-full blur-[12px] animate-pulse pointer-events-none" />
+                )}
                 <div className={cn(
                    "w-16 h-16 rounded-full overflow-hidden shadow-2xl relative",
-                   p.isPlayer ? "border-[3px] border-blue-400" : "border-2 border-white/40"
+                   p.isPlayer ? "border-[3px] border-blue-400" : "border-2 border-white/40",
+                   giftEffects[p.id] === 'glow' && "shadow-[0_0_30px_rgba(99,102,241,0.8)]"
                 )}>
                     <img 
                       src={p.isPlayer ? myPet.imageUrl : `https://loremflickr.com/150/150/${p.type === '小狗' ? 'dog' : 'cat'}?lock=${p.id.replace(/\D/g, '') || '1'}`} 
@@ -562,7 +616,7 @@ export function Community({ myPet }: CommunityProps) {
                 <p className="text-xs text-white/40 bg-white/5 px-3 py-1 rounded-full">{selectedPet.breed} · {selectedPet.type}</p>
               </div>
 
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center gap-4 mb-6">
                 <button 
                   className="bg-rose-500/10 text-rose-400 p-4 rounded-full hover:bg-rose-500/20 transition-colors"
                   onClick={() => {
@@ -579,7 +633,62 @@ export function Community({ myPet }: CommunityProps) {
                 >
                   <Heart size={28} />
                 </button>
+
+                {!selectedPet.isPlayer && onAddFriend && (
+                  <button
+                    className={`p-4 rounded-full transition-colors ${friends.some(f => f.id === selectedPet.id) ? 'bg-white/10 text-white/40 cursor-not-allowed' : 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'}`}
+                    onClick={() => {
+                      if (!friends.some(f => f.id === selectedPet.id)) {
+                        onAddFriend({
+                          id: selectedPet.id,
+                          name: selectedPet.name,
+                          avatar: `https://loremflickr.com/150/150/${selectedPet.type === '小狗' ? 'dog' : 'cat'}?lock=${selectedPet.id.replace(/\D/g, '') || '1'}`,
+                          lastSeen: '刚刚'
+                        });
+                      }
+                    }}
+                  >
+                    <UserPlus size={28} />
+                  </button>
+                )}
+                {!selectedPet.isPlayer && (
+                  <button
+                    className="p-4 rounded-full transition-colors bg-purple-500/10 text-purple-400 hover:bg-purple-500/20"
+                    onClick={() => setShowGiftMenu(!showGiftMenu)}
+                  >
+                    <Gift size={28} />
+                  </button>
+                )}
               </div>
+
+              <AnimatePresence>
+                {showGiftMenu && !selectedPet.isPlayer && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mb-6 overflow-hidden"
+                  >
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col gap-3">
+                      <h4 className="text-xs font-bold text-white/60 mb-1">赠送礼物</h4>
+                      {['一颗星尘', '一束星光'].map(gift => (
+                        <div key={gift} className="flex justify-between items-center bg-black/40 p-3 rounded-xl border border-white/5">
+                          <span className="text-sm font-bold text-white">{gift}</span>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[10px] text-white/50">拥有: {userProfile?.gifts?.[gift] || 0}</span>
+                            <button
+                              onClick={() => handleSendGift(gift)}
+                              className="px-3 py-1 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white rounded-full text-[10px] font-bold shadow-md active:scale-95 transition-transform"
+                            >
+                              赠送
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <div className="bg-[#0B0F19]/60 backdrop-blur-xl p-2 rounded-full flex gap-2 border border-blue-500/30 items-center pl-4 shadow-[0_0_15px_rgba(59,130,246,0.15)] relative">
                 <input 

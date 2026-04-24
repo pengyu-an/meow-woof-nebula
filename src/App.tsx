@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Plus, Camera, Sparkles, Heart, ArrowRight, Home as HomeIcon, Settings, Mail, Gift, Clover, User, Feather, Crosshair, Users, Command, ArrowLeft, Coins } from 'lucide-react';
+import { Plus, Camera, Sparkles, Heart, ArrowRight, Home as HomeIcon, Settings, Mail, Gift, Clover, User, Feather, Crosshair, Users, Command, ArrowLeft, Coins, Gem } from 'lucide-react';
 import { Pet, ChatMessage, PetStatus, UserProfile, Environment, Story } from './types';
 import { BasicInfo } from './components/BasicInfo';
 import { Friends } from './components/Friends';
@@ -16,42 +16,81 @@ import { AiSettings } from './components/AiSettings';
 import { Starfield } from './components/Starfield';
 import { getPetResponse, generatePetAvatar, analyzePetImages, generateAllPetMoods } from './services/geminiService';
 import { cn } from './lib/utils';
+import { Mail as MailType } from './types';
+import { DailyTasks } from './components/DailyTasks';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [pet, setPet] = useState<Pet | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [systemMails, setSystemMails] = useState<MailType[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showDailyTasks, setShowDailyTasks] = useState(false);
 
   // Load data from local storage
   useEffect(() => {
-    // Legacy cleanup for old/dead API URLs
-    const currentBaseUrl = localStorage.getItem('wangxing_user_base_url');
-    if (currentBaseUrl === 'https://api.go-model.com' || currentBaseUrl === 'https://twob.pp.ua/v1') {
-      localStorage.setItem('wangxing_user_base_url', 'https://once.novai.su/v1');
-      console.log('Migrated legacy API URL to https://once.novai.su/v1');
-    }
-
     const savedPet = localStorage.getItem('wangxing_pet_v2');
     const savedProfile = localStorage.getItem('wangxing_profile_v2');
     const savedMessages = localStorage.getItem('wangxing_messages_v2');
+    const savedMails = localStorage.getItem('wangxing_mails_v2');
+
+    let loadedProfile = null;
 
     if (savedProfile) {
-      setUserProfile(JSON.parse(savedProfile));
+      loadedProfile = JSON.parse(savedProfile);
+      if (loadedProfile.dialogueRemaining === undefined) {
+        loadedProfile.dialogueRemaining = 5;
+      }
+      if (!loadedProfile.friends) {
+        loadedProfile.friends = [];
+      }
+      setUserProfile(loadedProfile);
     } else {
-      const defaultProfile: UserProfile = {
+      loadedProfile = {
         uid: 'local_user',
         displayName: '喵汪星旅人',
         coins: 500,
-        inventory: []
+        inventory: [],
+        dialogueRemaining: 5,
+        friends: [],
+        isVIP: false
       };
-      setUserProfile(defaultProfile);
-      localStorage.setItem('wangxing_profile_v2', JSON.stringify(defaultProfile));
+      setUserProfile(loadedProfile);
+      localStorage.setItem('wangxing_profile_v2', JSON.stringify(loadedProfile));
+    }
+
+    if (savedMails) {
+      setSystemMails(JSON.parse(savedMails));
+    } else {
+      // Simulate an offline message 
+      const initialMails: MailType[] = [
+        {
+          id: 'welcome',
+          title: '欢迎来到星云家园',
+          date: '刚刚',
+          content: '亲爱的旅人，欢迎来到星云纪元。在这里，所有的思念都将化为璀璨的星尘。我们为你准备了500星币作为见面礼，祝你在星居度过愉快的时光。',
+          isNew: true
+        },
+        {
+          id: 'missed_message_1',
+          title: '错过了一条看星星的人的话',
+          date: '1小时前',
+          content: '“你的小狗很可爱，它叫什么名字？”',
+          isNew: true,
+          senderInfo: {
+            id: 'friend_5',
+            name: '流浪陨石',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=meteor&backgroundColor=ffdfbf'
+          }
+        }
+      ];
+      setSystemMails(initialMails);
+      localStorage.setItem('wangxing_mails_v2', JSON.stringify(initialMails));
     }
 
     if (savedPet) {
@@ -66,6 +105,30 @@ export default function App() {
 
     setIsLoading(false);
   }, []);
+
+  const saveProfileData = (updatedProfile: UserProfile) => {
+    localStorage.setItem('wangxing_profile_v2', JSON.stringify(updatedProfile));
+    setUserProfile(updatedProfile);
+  };
+
+  const handleAddFriend = (friend: any) => {
+    if (!userProfile) return;
+    const isAlreadyFriend = userProfile.friends?.some(f => f.id === friend.id);
+    if (!isAlreadyFriend) {
+      const newFriends = [...(userProfile.friends || []), friend];
+      saveProfileData({ ...userProfile, friends: newFriends });
+      alert(`已添加好友：${friend.name}`);
+    } else {
+      alert(`${friend.name} 已经是你的好友了！`);
+    }
+  };
+
+  const handleMarkMailRead = (mailId: string) => {
+    const updatedMails = systemMails.map(m => m.id === mailId ? { ...m, isNew: false } : m);
+    setSystemMails(updatedMails);
+    localStorage.setItem('wangxing_mails_v2', JSON.stringify(updatedMails));
+  };
+
 
   // Auto-recovery of energy
   useEffect(() => {
@@ -180,7 +243,19 @@ export default function App() {
   };
 
   const handleSendMessage = async (text: string) => {
-    if (!pet) return;
+    if (!pet || !userProfile) return;
+
+    if (!userProfile.isVIP && (userProfile.dialogueRemaining || 0) <= 0) {
+        alert("星尘已沉睡，喂食零食可唤醒");
+        return;
+    }
+
+    if (!userProfile.isVIP) {
+        saveProfileData({
+            ...userProfile,
+            dialogueRemaining: (userProfile.dialogueRemaining || 1) - 1
+        });
+    }
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -262,6 +337,31 @@ export default function App() {
     
     // Low energy blocks pat/poke, but feeding is always allowed if not full?
     if ((type === 'pat' || type === 'poke') && pet.energy < 5) return;
+
+    if (userProfile && (type === 'pat' || type === 'poke')) {
+        const currentTasks = userProfile.dailyTasks || {
+            date: new Date().toDateString(),
+            login: true,
+            patCount: 0,
+            shareWhisper: false,
+            stay30s: false,
+            likeWhisperCount: 0,
+            receiveStarGiftCount: 0,
+            claimed: []
+        };
+        
+        if (currentTasks.date === new Date().toDateString() && currentTasks.patCount < 3) {
+            const updatedProfile = {
+                ...userProfile,
+                dailyTasks: {
+                    ...currentTasks,
+                    patCount: currentTasks.patCount + 1
+                }
+            };
+            setUserProfile(updatedProfile);
+            localStorage.setItem('wangxing_profile_v2', JSON.stringify(updatedProfile));
+        }
+    }
 
     let newHappiness = pet.happiness;
     let newEnergy = pet.energy;
@@ -473,11 +573,31 @@ export default function App() {
                     <Gift size={22} className="text-yellow-200 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]" />
                     <span className="text-[10px] text-white font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">充值通道</span>
                   </button>
+                  <button onClick={() => setShowDailyTasks(true)} className="flex flex-col items-center gap-1 opacity-80 hover:opacity-100 transition-opacity">
+                    <Sparkles size={22} className="text-amber-400 drop-shadow-[0_0_8px_rgba(251,191,36,0.8)]" />
+                    <span className="text-[10px] text-white font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">每日领取</span>
+                  </button>
                 </div>
               </div>
 
               {/* Top Right Coins & Settings Display */}
               <div className="absolute top-4 right-4 z-40 pointer-events-auto flex items-center gap-3">
+                {userProfile?.vipTier === 'yearly' ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600/80 to-indigo-600/80 backdrop-blur-md rounded-full border border-purple-400/50 shadow-md">
+                    <Gem size={14} className="text-purple-200" />
+                    <span className="text-white font-bold text-xs tracking-widest">年卡会员</span>
+                  </div>
+                ) : userProfile?.vipTier === 'monthly' ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-600/80 to-cyan-600/80 backdrop-blur-md rounded-full border border-blue-400/50 shadow-md">
+                    <Gem size={14} className="text-blue-200" />
+                    <span className="text-white font-bold text-xs tracking-widest">月卡会员</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-md flex-shrink-0 whitespace-nowrap">
+                    <User size={14} className="text-gray-400" />
+                    <span className="text-white/80 font-bold text-xs tracking-widest min-w-max">非会员</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-md">
                   <Coins size={14} className="text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]" />
                   <span className="text-white font-bold text-sm tracking-widest">{userProfile?.coins || 0}</span>
@@ -493,7 +613,7 @@ export default function App() {
               {pet && (
                 <div className="relative w-full h-full flex flex-col pointer-events-none">
                   {/* Central Pet layer (highest z-index for visibility, pushed up) */}
-                  <div className="absolute top-[8%] left-0 w-full flex items-center justify-center pointer-events-none h-[40%]">
+                  <div className="absolute top-[4%] left-0 w-full flex items-center justify-center pointer-events-none h-[40%]">
                     <PetDisplay 
                       pet={pet} 
                       onInteract={handleInteract} 
@@ -507,14 +627,16 @@ export default function App() {
                     />
                   </div>
 
-                  {/* Lower Chat Layer (From middle to bottom-80px) */}
-                  <div className="absolute top-[50%] bottom-[88px] left-0 w-full pointer-events-auto z-20 flex justify-center">
+                  {/* Lower Chat Layer (From middle to bottom-100px) */}
+                  <div className="absolute top-[44%] bottom-[120px] left-0 w-full pointer-events-auto z-20 flex justify-center">
                     <div className="w-[340px] max-w-full h-full pb-4">
                       <Chat 
                         pet={pet} 
                         messages={messages} 
                         onSendMessage={handleSendMessage} 
                         isTyping={isTyping}
+                        dialogueRemaining={userProfile?.dialogueRemaining || 0}
+                        isVIP={userProfile?.isVIP || false}
                       />
                     </div>
                   </div>
@@ -579,7 +701,7 @@ export default function App() {
               exit={{ opacity: 0 }}
               className="absolute inset-0 z-0 bg-[#050510]"
             >
-              {pet && <Community myPet={pet} />}
+              {pet && <Community myPet={pet} onAddFriend={handleAddFriend} friends={userProfile?.friends || []} userProfile={userProfile} onUpdateProfile={(p) => { setUserProfile(p); localStorage.setItem('wangxing_profile_v2', JSON.stringify(p)); }} />}
             </motion.div>
           )}
 
@@ -591,7 +713,7 @@ export default function App() {
               exit={{ opacity: 0, x: -20 }}
               className="absolute inset-0 z-0"
             >
-              <Friends />
+              <Friends friends={userProfile?.friends || []} />
             </motion.div>
           )}
 
@@ -603,7 +725,7 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="absolute inset-0 z-0"
             >
-              <SystemMail />
+              <SystemMail mails={systemMails} onAddFriend={handleAddFriend} onMarkRead={handleMarkMailRead} />
             </motion.div>
           )}
 
@@ -659,6 +781,7 @@ export default function App() {
                   petName={pet.name} 
                   petType={pet.type}
                   personality={pet.personality}
+                  isVIP={userProfile?.isVIP || false}
                 />
               )}
             </motion.div>
@@ -725,6 +848,19 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+      <AnimatePresence>
+        {showDailyTasks && (
+            <DailyTasks 
+                onClose={() => setShowDailyTasks(false)} 
+                userProfile={userProfile} 
+                onUpdateProfile={(profile) => {
+                    setUserProfile(profile);
+                    localStorage.setItem('wangxing_profile_v2', JSON.stringify(profile));
+                }} 
+            />
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

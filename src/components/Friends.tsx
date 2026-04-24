@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Users, MessageSquare, ArrowLeft, Send } from 'lucide-react';
 
-export function Friends() {
+interface FriendsProps {
+  friends?: any[];
+}
+
+export function Friends({ friends = [] }: FriendsProps) {
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [chatMessage, setChatMessage] = useState('');
   const [chatHistories, setChatHistories] = useState<Record<string, {sender: 'me', text: string, time: string}[]>>({
@@ -17,6 +21,8 @@ export function Friends() {
     { id: '4', name: '星空流浪者', lastSeen: '5小时前在猎户座', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Luna&backgroundColor=ffdfbf' },
     { id: '5', name: '月球居民', lastSeen: '1天前在静海', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aiden&backgroundColor=d1d4f9' }
   ];
+
+  const displayFriends = [...friends, ...mockFriends.filter(m => !friends.some((f: any) => f.id === m.id))];
 
   const handleSendFriendMessage = () => {
     if (!chatMessage.trim() || !activeChat) return;
@@ -38,20 +44,20 @@ export function Friends() {
         </h2>
       </div>
 
-      <div className="space-y-6 flex-1">
+      <div className="space-y-6 flex-1 pb-32">
         {!activeChat ? (
           <div className="space-y-4">
-            {mockFriends.map(friend => (
+            {displayFriends.map(friend => (
               <div 
                 key={friend.id}
                 className="bg-white/10 backdrop-blur-md rounded-[2rem] p-4 border border-white/20 shadow-sm flex items-center justify-between hover:bg-white/20 transition-colors cursor-pointer"
                 onClick={() => setActiveChat(friend.id)}
               >
                 <div className="flex items-center gap-4">
-                  <img src={friend.avatar} alt="avatar" className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20" />
+                  <img src={friend.avatar} alt="avatar" className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 object-cover image-pixelated" />
                   <div>
                     <p className="font-bold text-sm text-white">{friend.name}</p>
-                    <p className="text-[10px] text-white/50 mt-1">{friend.lastSeen}</p>
+                    <p className="text-[10px] text-white/50 mt-1">{friend.lastSeen || '刚刚'}</p>
                   </div>
                 </div>
                 <div className="p-3 bg-white/10 rounded-full text-white/70">
