@@ -1,0 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Zilla+Slab:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@layer utilities {
+  .scrollbar-hide {
+    /* IE and Edge */
+    -ms-overflow-style: none;
+    /* Firefox */
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@theme {
+  --font-sans: "Quicksand", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Zilla+Slab", ui-serif, Georgia, serif;
+  
+  --color-sepia-50: #050510;
+  --color-sepia-100: rgba(255, 255, 255, 0.05); /* very dark for borders/cards */
+  --color-sepia-200: rgba(255, 255, 255, 0.1);
+  --color-sepia-300: #4a5578;
+  --color-sepia-400: #7b8de6;
+  --color-sepia-500: #3b82f6; 
+  --color-sepia-600: #e2e8f0; 
+  
+  --color-clay-50: rgba(255, 255, 255, 0.02);
+  --color-clay-100: rgba(255, 255, 255, 0.05);
+  --color-clay-200: rgba(255, 255, 255, 0.1);
+  --color-clay-300: #5562a3;
+  --color-clay-400: #7c8ce0;
+  --color-clay-500: #bac3f5;
+  
+  --color-sand-50: rgba(96, 165, 250, 0.05);
+  --color-sand-100: rgba(96, 165, 250, 0.1);
+  --color-sand-200: rgba(96, 165, 250, 0.2);
+  --color-sand-300: #60a5fa;
+  --color-sand-400: #93c5fd;
+  --color-sand-500: #bfdbfe;
+}
+
+@layer base {
+  body {
+    @apply bg-sepia-50 text-sepia-600 font-sans;
+  }
+}
+
+@layer utilities {
+  .bg-white {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(12px) !important;
+  }
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.image-pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
